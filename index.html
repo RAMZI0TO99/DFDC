@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuditMind | Deepfake Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #09090b;
+            --card-bg: rgba(24, 24, 27, 0.6);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #a1a1aa;
+            --fake-color: #f43f5e;
+            --real-color: #10b981;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.1) 0px, transparent 50%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 550px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        h1 { margin: 0; font-size: 28px; font-weight: 800; tracking: -0.025em; }
+        p.subtitle { color: var(--text-muted); margin-bottom: 30px; line-height: 1.6; font-size: 15px; }
+        
+        /* Drag & Drop Zone */
+        .upload-area {
+            border: 2px dashed rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area:hover, .upload-area.dragover { 
+            border-color: var(--primary); 
+            background: rgba(99, 102, 241, 0.05); 
+            transform: scale(1.02);
+        }
+
+        input[type="file"] { display: none; }
+        
+        video {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none;
+            background: #000;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Animated Button */
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); }
+        .btn:disabled { background: #3f3f46; color: #a1a1aa; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        /* Loading State */
+        .loader-container {
+            display: none;
+            margin: 30px 0;
+            animation: fadeIn 0.5s ease;
+        }
+        .pulse-ring {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.2);
+            margin: 0 auto 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: pulse 2s infinite;
+        }
+        .pulse-core {
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        /* Results Card */
+        #resultArea {
+            display: none;
+            margin-top: 30px;
+            padding: 24px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .metric-label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 8px;}
+        
+        .badge {
+            font-size: 32px;
+            font-weight: 800;
+            padding: 10px 30px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .badge.fake { background: rgba(244, 63, 94, 0.1); color: var(--fake-color); border: 1px solid rgba(244, 63, 94, 0.3); box-shadow: 0 0 20px rgba(244, 63, 94, 0.2); }
+        .badge.real { background: rgba(16, 185, 129, 0.1); color: var(--real-color); border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        
+        .confidence-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+        .confidence-bar-fill { height: 100%; width: 0%; transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .confidence-bar-fill.fake { background: var(--fake-color); }
+        .confidence-bar-fill.real { background: var(--real-color); }
+
+        .confidence-text { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; color: var(--text-main); font-weight: 500; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); } 70% { box-shadow: 0 0 0 20px rgba(99, 102, 241, 0); } 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="logo-container">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6366f1" />
+                        <stop offset="100%" stop-color="#a855f7" />
+                    </linearGradient>
+                </defs>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+            </svg>
+            <h1>AuditMind</h1>
+        </div>
+        <p class="subtitle">Upload an MP4 to detect spatial-frequency artifacts and temporal inconsistencies.</p>
+
+        <form id="uploadForm">
+            <label class="upload-area" for="videoFile" id="dropZone">
+                <div id="uploadText">
+                    <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color: #6366f1; margin-bottom: 15px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14v-9m0 0l-3 3m3-3l3 3"></path>
+                    </svg><br>
+                    <strong style="color: #f8fafc; font-size: 16px;">Click to browse</strong> or drag and drop<br>
+                    <span style="color: #71717a; font-size: 13px; display: inline-block; margin-top: 8px;">Supports MP4 up to 50MB</span>
+                </div>
+                <video id="videoPreview" controls></video>
+            </label>
+            <input type="file" id="videoFile" accept=".mp4" required>
+            
+            <button type="submit" class="btn" id="analyzeBtn" disabled>
+                <span id="btnText">Analyze Video Footage</span>
+            </button>
+        </form>
+
+        <div class="loader-container" id="loader">
+            <div class="pulse-ring"><div class="pulse-core"></div></div>
+            <p style="color: var(--primary); font-weight: 500; font-size: 14px;">Running ViT Temporal Analysis...</p>
+        </div>
+
+        <div id="resultArea">
+            <div class="metric-label">System Prediction</div>
+            <div class="badge" id="predictionBadge"></div>
+            
+            <div style="text-align: left;">
+                <div class="confidence-text">
+                    <span>Network Confidence</span>
+                    <span id="confidenceScoreText">0%</span>
+                </div>
+                <div class="confidence-bar-bg">
+                    <div class="confidence-bar-fill" id="confidenceBar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('videoFile');
+        const videoPreview = document.getElementById('videoPreview');
+        const uploadText = document.getElementById('uploadText');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const btnText = document.getElementById('btnText');
+        const loader = document.getElementById('loader');
+        const resultArea = document.getElementById('resultArea');
+        const dropZone = document.getElementById('dropZone');
+
+        // Advanced Drag & Drop Interactions
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if(files.length > 0 && files[0].name.endsWith('.mp4')) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            } else {
+                alert("Please upload an MP4 file.");
+            }
+        });
+
+        // Click Upload Interaction
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
+        });
+
+        function handleFileSelect(file) {
+            const fileURL = URL.createObjectURL(file);
+            videoPreview.src = fileURL;
+            videoPreview.style.display = 'block';
+            uploadText.style.display = 'none';
+            analyzeBtn.disabled = false;
+            resultArea.style.display = 'none';
+        }
+
+        // Form Submission
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            // UI Loading State
+            analyzeBtn.disabled = true;
+            btnText.innerText = "Processing Pipeline...";
+            loader.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (response.ok) {
+                    const badge = document.getElementById('predictionBadge');
+                    const isFake = data.prediction === 'FAKE';
+                    
+                    // Update Badge
+                    badge.innerText = data.prediction;
+                    badge.className = `badge ${isFake ? 'fake' : 'real'}`;
+                    
+                    // Update Progress Bar & Text
+                    document.getElementById('confidenceScoreText').innerText = data.confidence;
+                    const bar = document.getElementById('confidenceBar');
+                    bar.className = `confidence-bar-fill ${isFake ? 'fake' : 'real'}`;
+                    
+                    // Small delay to allow display block to render before triggering width transition
+                    resultArea.style.display = 'block';
+                    setTimeout(() => {
+                        bar.style.width = data.confidence;
+                    }, 50);
+
+                } else {
+                    alert(data.detail || data.error || 'Analysis failed.');
+                }
+            } catch (error) {
+                alert('Network error communicating with the server.');
+            } finally {
+                analyzeBtn.disabled = false;
+                btnText.innerText = "Analyze Another Video";
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
