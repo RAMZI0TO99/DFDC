@@ -5,8 +5,9 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install system dependencies required by OpenCV (cv2)
+# FIX: Using modern 'libgl1' instead of deprecated 'libgl1-mesa-glx'
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
