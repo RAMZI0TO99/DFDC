@@ -62,6 +62,10 @@
         
         /* Drag & Drop Zone */
         .upload-area {
+            display: flex;           
+            flex-direction: column;  
+            align-items: center;     
+            width: 100%;             
             border: 2px dashed rgba(99, 102, 241, 0.3);
             border-radius: 16px;
             padding: 40px 20px;
@@ -92,6 +96,8 @@
 
         /* Animated Button */
         .btn {
+            display: block;         
+            margin-top: 10px;        
             background: linear-gradient(135deg, var(--primary), var(--primary-hover));
             color: white;
             border: none;
