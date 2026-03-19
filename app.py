@@ -55,7 +55,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = FrequencyTemporalViT().to(device)
 
 # We will load the weights ONLY if the file exists (prevents crashing before you upload the model tomorrow)
-MODEL_PATH = "best_deepfake_model.pth"
+MODEL_PATH = "best_dfdc_model_v2.pth"
 if os.path.exists(MODEL_PATH):
     model.load_state_dict(torch.load(MODEL_PATH, map_location=device, weights_only=True))
     model.eval()
